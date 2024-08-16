@@ -1,2 +1,5 @@
 .caffe_project
 .env
+db.*
+.vscode
+__pycache__/
