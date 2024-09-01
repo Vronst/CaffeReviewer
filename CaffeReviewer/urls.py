@@ -17,10 +17,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+
 urlpatterns = [
     path("", include('CaffeRatings.urls')),
-    
-    path('api-auth/', include('rest_framework.urls')), # WIT?
 
     path('api/', include('API.urls')),
 
