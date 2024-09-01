@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect
 from django.http import Http404
 from django.contrib import messages
+from django.contrib.auth import views as auth_views, logout
+from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, IntegerField
 from django.db.models.functions import Cast
 from .models import Cafe, City
@@ -10,7 +12,8 @@ from .forms import RegistrationForm
 def index(request):
     data = City.objects.all()
     context = {
-        'data': data
+        'data': data,
+        # 'logged_in': request.user.is_authenticated,
     }
     return render(request=request, template_name='CaffeRatings/index.html', context=context)
 
@@ -30,6 +33,9 @@ def city_load(request, city):
 
 
 def register(request):
+    if request.user.is_authenticated:
+        return redirect('index')
+    
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
         if form.is_valid():
@@ -51,14 +57,22 @@ def register(request):
     return render(request, 'registration/register.html', {'form': form})
 
 
+@login_required(redirect_field_name='login', login_url='/login/')
+def account_settings(request):
+    # if not request.user.is_authenticated:
+    #     return redirect('index')
+    pass
 
-# def login(request):
-#     if request.method == 'POST':
-#         form = LoginForm(request.POST)
-#         if form.valid():
-#             pass
-#         else:
-#             form = LoginForm(request.POST)
-#     else:
-#         form = LoginForm()
-#     return render(request=request, template_name='registration/login.html', context={'form': form})
+
+@login_required(redirect_field_name='login', login_url='/login/')
+def custom_logout(request):
+    logout(request)
+    return redirect('index')
+    
+
+class CustomLoginView(auth_views.LoginView):
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('index')  # Redirect to the homepage if the user is logged in
+        return super().dispatch(request, *args, **kwargs)
+    

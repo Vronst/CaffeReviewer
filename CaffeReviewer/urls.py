@@ -19,6 +19,10 @@ from django.urls import path, include
 
 urlpatterns = [
     path("", include('CaffeRatings.urls')),
+    
+    path('api-auth/', include('rest_framework.urls')), # WIT?
+
+    path('api/', include('API.urls')),
 
     path('admin/', admin.site.urls),
 ]
