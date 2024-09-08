@@ -9,6 +9,8 @@ from .models import Cafe, City
 from .forms import RegistrationForm
 
 
+# cities could be case insensitive
+# also what to do when city name repeats?
 def index(request):
     data = City.objects.all()
     context = {
@@ -20,7 +22,7 @@ def index(request):
 
 # Create your views here.
 def city_load(request, city):
-    data = Cafe.objects.filter(city__name=city).annotate(average_rating=Cast(Avg('rating__rating'), IntegerField()))
+    data = Cafe.objects.filter(city__name=city, approved=True).annotate(average_rating=Cast(Avg('rating__rating'), IntegerField()))
     
     if not data.exists():
         raise Http404('No cafes found in this city.')

@@ -10,9 +10,9 @@ class OverallTestCase(TestCase):
         self.city2 = City.objects.create(name='Test City 2')
 
         # Create cafes associated with cities
-        Cafe.objects.create(name='Test cafe', location='testing suite', image='test_image_1.jpg', city=self.city1)
-        Cafe.objects.create(name='Test 2 cafe 2', location='testing 2 suite 2', image='test_image_2.jpg', city=self.city2)
-        Cafe.objects.create(name='Test 3 cafe 3', location='testing 3 suite 3', image='test', city=self.city2)
+        Cafe.objects.create(name='Test cafe', location='testing suite', image='test_image_1.jpg', city=self.city1, approved=True)
+        Cafe.objects.create(name='Test 2 cafe 2', location='testing 2 suite 2', image='test_image_2.jpg', city=self.city2, approved=True)
+        Cafe.objects.create(name='Test 3 cafe 3', location='testing 3 suite 3', image='test', city=self.city2, approved=True)
 
         Category.objects.create(name='CatTest')
         Category.objects.create(name='CatTest2')

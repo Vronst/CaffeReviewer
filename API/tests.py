@@ -12,7 +12,7 @@ class GetRatingAPITest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.city = City.objects.create(name="Test City")
-        self.cafe = Cafe.objects.create(name="Test Cafe", location="123 Test St", city=self.city)
+        self.cafe = Cafe.objects.create(name="Test Cafe", location="123 Test St", city=self.city, image='image')
         self.user = MineUser.objects.create_user(username='testuser', password='testpassword')
         self.category = Category.objects.create(name="Service")
         self.rating = Rating.objects.create(cafe=self.cafe, author=self.user, category=self.category, rating=5, icon='star')
@@ -25,25 +25,34 @@ class GetRatingAPITest(TestCase):
 
     def test_get_rating_valid_cafe(self):
         # Test case where cafe exists
-        url = reverse('reviews', args=[self.valid_cafe_name])
+        url = reverse('cafe-ratings', args=[self.validCity, self.valid_cafe_name])
         response = self.client.get(url)
         
         ratings = Rating.objects.filter(cafe=self.cafe)
         serializer = RatingSerializer(ratings, many=True)      
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, serializer.data)
+        self.assertEqual(response.data, {'ratings': serializer.data})
 
     def test_get_rating_invalid_cafe(self):
         # Test case where cafe does not exist
-        url = reverse('reviews', args=[self.invalid_cafe_name])
+        url = reverse('cafe-ratings', args=[self.validCity, self.invalid_cafe_name])
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.data['detail'], 'No Cafe matches the given query.')
 
+    def test_get_rating_invalid_city(self):
+        # Test case where cafe does not exist
+        url = reverse('cafe-ratings', args=[self.invalidCity, self.invalid_cafe_name])
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data['detail'], 'No City matches the given query.')
+
+
     def test_get_all_existing_cafes_in_city(self):
-        url = reverse('cafes', args=[self.validCity])
+        url = reverse('city-cafes', args=[self.validCity])
         response = self.client.get(url)
 
         cafes = Cafe.objects.filter(city__name=self.validCity).annotate(average_rating=Cast(Avg('rating__rating'), IntegerField()))
@@ -52,9 +61,142 @@ class GetRatingAPITest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, serializer.data)
 
-    def test_get_all_existing_cafes_in_city(self):
-        url = reverse('cafes', args=[self.invalidCity])
+    def test_get_all_nonexisting_cafes_in_city(self):
+        url = reverse('city-cafes', args=[self.invalidCity])
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.data['detail'], "No cafes found")
+
+    def test_valid_cafe_creation(self):
+        url = reverse('city-cafes', args=[self.validCity])
+        data = {
+            'name': 'APICREATE',
+            'location': 'API TEST',
+        }
+
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            Cafe.objects.get(name='APICREATE', city=self.city).name,
+            'APICREATE'
+            )
+    
+    def test_valid_cafe_creation_with_city(self):
+        city = 'NOcityHERE'
+        url = reverse('city-cafes', args=[city])
+        data = {
+            'name': 'APICREATE1',
+            'location': 'API TEST',
+        }
+
+        response = self.client.post(url, data, format='json')
+        city_id = City.objects.get(name=city).id
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            Cafe.objects.get(name='APICREATE1', city=city_id).name,
+            'APICREATE1'
+            )
+        self.assertTrue(City.objects.filter(name=city).exists(), 'Failed creating city')
+        self.assertEqual(City.objects.filter(name=city).count(), 1, 'No city in database after creation')
+
+    
+    def test_create_duplicate(self):
+        url = reverse('city-cafes', args=[self.validCity])
+        data = {
+            'name': 'APICREATE3',
+            'location': 'API TEST',
+        }
+
+        response1 = self.client.post(url, data, format='json')
+        response2 = self.client.post(url, data, format='json')
+
+        self.assertEqual(response1.status_code, status.HTTP_201_CREATED, 'Failed first creation request')
+        self.assertEqual(response2.status_code, status.HTTP_400_BAD_REQUEST, 'Failed second creation (duplication) request')
+
+    def test_invalid_cafe_creation(self):
+        url = reverse('city-cafes', args=[self.validCity])
+        data = {
+            'location': 'API TEST',
+        }
+
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_valid_update_PUT_full(self):
+        url = reverse('modify-cafe', args=[self.validCity, self.valid_cafe_name])
+        name, location, image = 'UPDATEapi', 'UPDATElocation', 'UPDATEimage'
+        data = {
+            'name': name,
+            'location': location,
+            'city': self.city.id,
+            'image': image
+        }
+
+        response = self.client.put(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.data, None) # probably pointless
+
+        updated_cafe = Cafe.objects.get(name=name, city=self.city)
+        self.assertEqual(updated_cafe.name, name)
+        self.assertEqual(updated_cafe.location, location)
+        self.assertEqual(updated_cafe.image, image)
+
+    def test_valid_update_PUT_partial(self):
+        url = reverse('modify-cafe', args=[self.validCity, self.valid_cafe_name])
+        name, location = 'POSTUPDATEapi', 'POSTUPDATE'
+        data = {
+            'name': name,
+            'city': self.city.id,
+            'location': location
+        }
+
+        response = self.client.put(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.data, None)
+
+        updated_cafe = Cafe.objects.get(name=name, city=self.city)
+        self.assertEqual(updated_cafe.name, name)
+        self.assertEqual(updated_cafe.location, location)
+        self.assertEqual(updated_cafe.image, 'image')
+
+    def test_invalid_PUT(self):
+        url = reverse('modify-cafe', args=[self.validCity, self.valid_cafe_name])
+        name, location = 'POSTUPDATEapi', 'POSTUPDATE'
+        data = {
+            'name': name,
+            'city': self.city.id,
+            'location': location,
+            'imagination': 12
+        }
+
+        response = self.client.put(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_incomplete_data_PUT(self):
+        url = reverse('modify-cafe', args=[self.validCity, self.valid_cafe_name])
+        data = {
+            'city': self.city.id,
+        }
+
+        response = self.client.put(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_valid_PATCH(self):
+        url = reverse('modify-cafe', args=[self.validCity, self.valid_cafe_name])
+        location = 'afterPatch'
+        data = {
+            'location': location
+        }
+
+        response = self.client.patch(url, data, format='json')
+        cafe = Cafe.objects.get(name=self.valid_cafe_name, city=self.city)
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(cafe.location, location)

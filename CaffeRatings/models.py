@@ -18,6 +18,12 @@ class Cafe(models.Model):
     location = models.CharField(max_length=75)
     image = models.CharField(max_length=120, default=None, blank=True, null=True)
     city = models.ForeignKey(City, related_name='cafes', on_delete=models.CASCADE)
+    approved = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['name', 'city'], name='unique_cafe_in_city')
+        ]
 
     def __str__(self):
         return f'{self.name} - {self.location}'
