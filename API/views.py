@@ -1,19 +1,27 @@
 from django.http import Http404
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.request import Request
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
-from CaffeRatings.models import Cafe, Rating, City
-from .serializers import RatingSerializer, CafeSerializer, CafeDetailSerializer
 from django.db.models import Avg, IntegerField
 from django.db.models.functions import Cast
 from django.core.exceptions import ObjectDoesNotExist
-# TODO: Some authorization so not everyone can 
-# create db entries with api
+from CaffeRatings.models import Cafe, Rating, City
+from .serializers import (
+    RatingSerializer,
+    CafeSerializer,
+    CafeDetailSerializer,
+    CustomTokenObtainPairSerializer,
+)
+from .permissions import IsAdminGroup
 
 
 @api_view(['GET'])
-def getRating(request, city, cafe_name):
+def getRating(request: Request, city: str, cafe_name: str) -> Response:
     validation = get_object_or_404(City, name=city)
    
     cafe = get_object_or_404(Cafe, name=cafe_name, city=validation)
@@ -24,7 +32,7 @@ def getRating(request, city, cafe_name):
 
 
 @api_view(['GET', 'POST'])
-def getOrCreateCafes(request, city):
+def getOrCreateCafes(request:Request, city: str) -> Response:
     if request.method == 'GET':
         # annotating average_rating requires us to change its serializer
         # by adding SerializerMethodField
@@ -59,33 +67,9 @@ def getOrCreateCafes(request, city):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# @api_view(['PUT', 'PATCH'])
-# def updateCafe(request, city, cafe_name):
-#     validate_city = get_object_or_404(City, name=city)
-#     cafe = get_object_or_404(Cafe, name=cafe_name, city=validate_city)
-    
-#     if request.data.get('city', None):
-#         try:
-#             retrived_city = City.objects.get(name=city)
-#         except ObjectDoesNotExist:
-#             retrived_city = City.objects.create(name=city)
-#         request['city'] = retrived_city.id
-
-#     if request.method == 'PUT':
-#         serializer = CafeDetailSerializer(data=request.data)
-#     elif request.method == 'PATCH':
-#         serializer = CafeDetailSerializer(data=request.data, partial=True)
-    
-#     if serializer.is_valid():
-#         serializer.save()
-#         return Response(serializer.data, status=status.HTTP_200_OK)
-#     else:
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
 @api_view(['DELETE', 'PUT', 'PATCH'])
-def modifyCafe(request, city, cafe_name):
+@permission_classes([IsAdminGroup])
+def modifyCafe(request: Request, city: str, cafe_name: str) -> Response:
     validate_city = get_object_or_404(City, name=city)
     cafe = get_object_or_404(Cafe, name=cafe_name, city=validate_city)
 
@@ -112,3 +96,5 @@ def modifyCafe(request, city, cafe_name):
     else:
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer

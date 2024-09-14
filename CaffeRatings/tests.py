@@ -5,7 +5,7 @@ from .models import *
 
 
 class OverallTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.city1 = City.objects.create(name='Test City')
         self.city2 = City.objects.create(name='Test City 2')
 
@@ -19,19 +19,19 @@ class OverallTestCase(TestCase):
 
         self.User = get_user_model()
 
-    def test_location(self):
+    def test_location(self) -> None:
         cafe1 = Cafe.objects.get(name='Test cafe')
         cafe2 = Cafe.objects.get(name='Test 2 cafe 2')
         self.assertEqual(cafe1.location, 'testing suite')
         self.assertEqual(cafe2.location, 'testing 2 suite 2')
 
-    def test_category(self):
+    def test_category(self) -> None:
         category1 = Category.objects.get(name='CatTest')
         category2 = Category.objects.get(name='CatTest2')
         self.assertEqual(category1.name, 'CatTest')
         self.assertEqual(category2.name, 'CatTest2')
 
-    def test_create_user(self):
+    def test_create_user(self) -> None:
         user = self.User.objects.create_user(
             username='testuser',
             password='securepassword',
@@ -44,7 +44,7 @@ class OverallTestCase(TestCase):
         self.assertFalse(user.is_superuser)
         self.assertFalse(user.is_staff)
 
-    def test_create_superuser(self):
+    def test_create_superuser(self) -> None:
         superuser = self.User.objects.create_superuser(
             username='superuser',
             password='superpassword',
@@ -57,7 +57,7 @@ class OverallTestCase(TestCase):
         self.assertTrue(superuser.is_superuser)
         self.assertTrue(superuser.is_staff)
 
-    def test_create_comment(self):
+    def test_create_comment(self) -> None:
         user = self.User.objects.create_user(
             username='commentuser',
             password='securepassword',
@@ -74,7 +74,7 @@ class OverallTestCase(TestCase):
         self.assertEqual(comment.cafe, cafe)
         self.assertEqual(comment.comment, 'This is a test comment.')
 
-    def test_create_rating(self):
+    def test_create_rating(self) -> None:
         user = self.User.objects.create_user(
             username='ratinguser',
             password='securepassword',
@@ -96,7 +96,7 @@ class OverallTestCase(TestCase):
         self.assertEqual(rating.icon, 'star')
         self.assertEqual(rating.rating, 5)
     
-    def test_city_and_cafe(self):
+    def test_city_and_cafe(self) -> None:
         # Verify city and associated cafes
         city1_cafes = self.city1.cafes.all()  # Using related_name 'cafes'
         city2_cafes = self.city2.cafes.all()
@@ -113,7 +113,7 @@ class OverallTestCase(TestCase):
         self.assertEqual(cafe2.city, self.city2)
         self.assertEqual(cafe3.city, self.city2)
 
-    def test_cafe_listing(self):
+    def test_cafe_listing(self) -> None:
 
         response = self.client.get(reverse('city', args=['Test City 2']))
 
