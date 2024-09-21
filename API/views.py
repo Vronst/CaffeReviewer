@@ -3,8 +3,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from django.db.models import Avg, IntegerField
@@ -15,12 +15,14 @@ from .serializers import (
     RatingSerializer,
     CafeSerializer,
     CafeDetailSerializer,
-    CustomTokenObtainPairSerializer,
+    CitySerializer,
+    GroupBasedTokenObtainPairSerializer,
 )
-from .permissions import IsAdminGroup
+from .permissions import CustomTokenPermission
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def getRating(request: Request, city: str, cafe_name: str) -> Response:
     validation = get_object_or_404(City, name=city)
    
@@ -32,6 +34,7 @@ def getRating(request: Request, city: str, cafe_name: str) -> Response:
 
 
 @api_view(['GET', 'POST'])
+@permission_classes([CustomTokenPermission])
 def getOrCreateCafes(request:Request, city: str) -> Response:
     if request.method == 'GET':
         # annotating average_rating requires us to change its serializer
@@ -68,19 +71,21 @@ def getOrCreateCafes(request:Request, city: str) -> Response:
 
 
 @api_view(['DELETE', 'PUT', 'PATCH'])
-@permission_classes([IsAdminGroup])
+@permission_classes([IsAuthenticated, CustomTokenPermission])
+# @authentication_classes([])
 def modifyCafe(request: Request, city: str, cafe_name: str) -> Response:
-    validate_city = get_object_or_404(City, name=city)
-    cafe = get_object_or_404(Cafe, name=cafe_name, city=validate_city)
-
+    cafe = Cafe.objects.select_related('city').filter(city__name=city, name=cafe_name).first()
     if request.method == 'DELETE':
+        if not cafe:
+            return Response({'message': 'Invalid Cafe'}, status=status.HTTP_400_BAD_REQUEST)
         cafe.delete()
 
         return Response({'message': 'Cafe deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
 
     if request.data.get('city', None):
         try:
-            retrived_city = City.objects.get(name=city)
+            # retrived_city = City.objects.get(name=city)
+            retrived_city = cafe.city
         except ObjectDoesNotExist:
             retrived_city = City.objects.create(name=city)
         request.data['city'] = retrived_city.id
@@ -96,5 +101,14 @@ def modifyCafe(request: Request, city: str, cafe_name: str) -> Response:
     else:
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def getCities(request:Request) -> Response:
+    data = City.objects.all()
+    serializer = CitySerializer(data, many=True)
+    return Response({'Cities': serializer.data}, status=status.HTTP_200_OK)
+
+
 class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer
+    serializer_class = GroupBasedTokenObtainPairSerializer

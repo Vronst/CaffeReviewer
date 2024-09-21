@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+from datetime import timedelta
+
 
 
 load_dotenv()
@@ -26,6 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY2 = os.environ.get('SECRET_KEY2')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -60,16 +63,31 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'CaffeReviewer.urls'
 
 REST_FRAMEWORK = {
-    # Use Django's standard `django.contrib.auth` permissions,
-    # or allow read-only access for unauthenticated users.
-    # 'DEFAULT_PERMISSION_CLASSES': [
-    #     'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
-    # ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # Token lifetime for access
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=365),     # Token lifetime for refresh
+    'ROTATE_REFRESH_TOKENS': False,  # Should refresh tokens be rotated
+    'BLACKLIST_AFTER_ROTATION': True,  # Blacklist old refresh tokens on rotation
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY2,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    "TOKEN_OBTAIN_SERIALIZER": "API.serializers.GroupBasedTokenObtainPairSerializer",
 }
 
 TEMPLATES = [

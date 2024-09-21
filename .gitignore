@@ -4,3 +4,4 @@ db.*
 .vscode
 __pycache__/
 management/
+TODO.txt

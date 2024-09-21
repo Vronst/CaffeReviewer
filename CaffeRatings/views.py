@@ -25,6 +25,9 @@ def city_load(request, city):
     data = Cafe.objects.filter(city__name=city, approved=True).annotate(average_rating=Cast(Avg('rating__rating'), IntegerField()))
     
     if not data.exists():
+        # if there are not approved cafes the city will not be deleted
+        if not Cafe.objects.filter(city__name=city).exists():
+            City.objects.get(name=city).delete()
         raise Http404('No cafes found in this city.')
 
     context = {

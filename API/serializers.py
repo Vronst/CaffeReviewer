@@ -1,7 +1,9 @@
 # from django.contrib.auth.models import Group, User
-from typing import Dict, Any
+from typing import Dict, Any, Type
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth.models import User
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import InvalidToken
 from CaffeRatings.models import Rating, Cafe, City
 
@@ -39,11 +41,21 @@ class CafeDetailSerializer(serializers.ModelSerializer):
         return data
     
 
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
-        data = super().validate(attrs)
-       
-        if not self.user.groups.filter(name='admin').exists():  # Example restriction: check if user is active
-            raise InvalidToken('User not in admin group')
+class GroupBasedTokenObtainPairSerializer(TokenObtainPairSerializer):    
+    @classmethod
+    def get_token(cls: Type[TokenObtainPairSerializer], user: User) -> Type[RefreshToken]:
+        token = super().get_token(user)
 
-        return data
+        if user.groups.filter(name='admin').exists(): 
+            token['custom_token_type'] = 'admin'
+        elif user.groups.filter(name='cafe_owner').exists():
+            token['custom_token_type'] = 'cafe_owner'
+        else:
+            token['custom_token_type'] = 'basic'
+
+        return token
+
+class CitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = City
+        fields = ['name']   

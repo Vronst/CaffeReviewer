@@ -6,12 +6,12 @@ from rest_framework_simplejwt.views import (
 from . import views
 
 
-# TODO: Simplify urls to collection/item/collection at best if possible
 urlpatterns = [
-    path('cities/<str:city>/cafes/<str:cafe_name>/ratings', views.getRating, name='cafe-ratings'),
-    path('cities/<str:city>/cafes/', views.getOrCreateCafes, name='city-cafes'),
-    path('cities/<str:city>/cafes/<str:cafe_name>/', views.modifyCafe, name='modify-cafe'),
-    path('token/', views.CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path('v1/cities/<str:city>/cafes/<str:cafe_name>/ratings', views.getRating, name='cafe-ratings'),
+    path('v1/cities/<str:city>/cafes/', views.getOrCreateCafes, name='city-cafes'),
+    path('v1/cities/<str:city>/cafes/<str:cafe_name>/', views.modifyCafe, name='modify-cafe'),
+    path('v1/cities/', views.getCities, name='cities'),
+    path('v1/token/', views.CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('v1/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
 ]
