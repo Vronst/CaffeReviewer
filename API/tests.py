@@ -72,14 +72,14 @@ class APITest(TestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data['detail'], 'No Cafe matches the given query.')
+        self.assertEqual(response.data['detail'], 'No match for provided details')
 
     def test_get_rating_invalid_city(self):
         url = reverse('cafe-ratings', args=[self.invalidCity, self.invalid_cafe_name])
         response = self.client.get(url)
 
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data['detail'], 'No City matches the given query.')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND, f'{response.data}')
+        self.assertEqual(response.data['detail'], 'No match for provided details')
 
     def test_get_all_existing_cafes_in_city(self):
         url = reverse('city-cafes', args=[self.valid_city_name])
